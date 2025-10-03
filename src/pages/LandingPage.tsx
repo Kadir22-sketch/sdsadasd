@@ -73,7 +73,7 @@ export const LandingPage: React.FC = () => {
           <nav className="flex justify-between items-center py-4" role="navigation" aria-label="Ana navigasyon">
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <Pickaxe className="h-6 w-6 text-white" />
+                <Hammer className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-white">FreeCloudMiner</h1>
             </div>
