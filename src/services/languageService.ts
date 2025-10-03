@@ -1,11 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+import { database } from '../config/firebase';
+import { ref, get, set } from 'firebase/database';
 
 export interface UserLanguagePreference {
   user_id: string;
@@ -18,22 +12,15 @@ export interface UserLanguagePreference {
 
 export const languageService = {
   async getUserLanguagePreference(userId: string): Promise<string | null> {
-    if (!supabase) {
-      return null;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('user_preferences')
-        .select('language')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const userRef = ref(database, `user_preferences/${userId}`);
+      const snapshot = await get(userRef);
 
-      if (error) {
-        return null;
+      if (snapshot.exists()) {
+        return snapshot.val().language || null;
       }
 
-      return data?.language || null;
+      return null;
     } catch (error) {
       return null;
     }
@@ -45,29 +32,15 @@ export const languageService = {
     country?: string,
     browserLanguage?: string
   ): Promise<boolean> {
-    if (!supabase) {
-      return false;
-    }
-
     try {
-      const { error } = await supabase
-        .from('user_preferences')
-        .upsert(
-          {
-            user_id: userId,
-            language,
-            country,
-            browser_language: browserLanguage,
-            updated_at: new Date().toISOString()
-          },
-          {
-            onConflict: 'user_id'
-          }
-        );
-
-      if (error) {
-        return false;
-      }
+      const userRef = ref(database, `user_preferences/${userId}`);
+      await set(userRef, {
+        user_id: userId,
+        language,
+        country,
+        browser_language: browserLanguage,
+        updated_at: new Date().toISOString()
+      });
 
       return true;
     } catch (error) {
@@ -76,18 +49,23 @@ export const languageService = {
   },
 
   async updateUserLanguage(userId: string, language: string): Promise<boolean> {
-    if (!supabase) {
-      return false;
-    }
-
     try {
-      const { error } = await supabase
-        .from('user_preferences')
-        .update({ language, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+      const userRef = ref(database, `user_preferences/${userId}`);
+      const snapshot = await get(userRef);
 
-      if (error) {
-        return false;
+      if (snapshot.exists()) {
+        const currentData = snapshot.val();
+        await set(userRef, {
+          ...currentData,
+          language,
+          updated_at: new Date().toISOString()
+        });
+      } else {
+        await set(userRef, {
+          user_id: userId,
+          language,
+          updated_at: new Date().toISOString()
+        });
       }
 
       return true;
